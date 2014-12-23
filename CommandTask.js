@@ -97,6 +97,8 @@ CommandTask.prototype.start = function (name, callback) {
 * @param name the name of the gulp task
 * @param deps (optional) an array of dependency tasks that should be run before this tasks
 * @param callback (optional) a function to be called after the task completes
+*
+* @return the created gulp task, just incase there's something you want to do with it
 */
 CommandTask.prototype.registerGulpTask = function (name, deps, callback) {
 	if (typeof deps === 'function' || !deps) {
@@ -110,6 +112,7 @@ CommandTask.prototype.registerGulpTask = function (name, deps, callback) {
 	if (cmdtask.messages.help) {
 		gulptask.help = util.format('\n%s\n', cmdtask.messages.help);
 	}
+	return gulptask;
 };
 
 

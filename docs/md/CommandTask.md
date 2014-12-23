@@ -46,3 +46,7 @@ assuming either exist, that runs the CommandTask when called.
 * name the name of the gulp task
 * deps (optional) an array of dependency tasks that should be run before this tasks
 * callback (optional) a function to be called after the task completes
+
+####Returns####
+
+the created gulp task, just incase there's something you want to do with it
