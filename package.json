@@ -26,5 +26,10 @@
   "bugs": {
     "url": "https://github.com/PointSource/gulp-command-task/issues"
   },
-  "homepage": "https://github.com/PointSource/gulp-command-task"
+  "homepage": "https://github.com/PointSource/gulp-command-task",
+  "dependencies": {
+    "gulp": "^3.8.10",
+    "q": "^1.1.2",
+    "simple-command": "^0.1.0"
+  }
 }
