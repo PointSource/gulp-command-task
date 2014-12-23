@@ -57,13 +57,20 @@ function CommandTask(command, workDir, logDir, messages) {
 */
 CommandTask.prototype.start = function (name, callback) {
 	var cmdtask = this;
-	var logfile = cmdtask.logDir ? cmdtask.logDir + '/' + cmdtask.name + '.log' : undefined;
+	if (typeof name === 'function' || !name) {
+		callback = name;
+		name = cmdtask.command.replace(/\W/g, '-');
+	}
+	var logfile = cmdtask.logDir ? cmdtask.logDir + '/' + name + '.log' : undefined;
 	if (logfile) {
 		startLogfile(logfile,
 			'TODO: cd ' + path.resolve(cmdtask.workDir) + ' && ' + cmdtask.command + '\n\n');
 	}
-	var command = new SimpleCommand(cmdtask.exec, cmdtask.args,
-		path.resolve(cmdtask.workDir), logfile ? path.resolve(logfile) : undefined);
+	var command = new SimpleCommand(cmdtask.exec, cmdtask.args, path.resolve(cmdtask.workDir));
+	command.setOptions({
+		redirect: logfile ? path.resolve(logfile) : undefined,
+		progress: 25
+	});
 	if (cmdtask.messages.pre) {
 		console.log(cmdtask.messages.pre);
 	}
@@ -80,8 +87,8 @@ CommandTask.prototype.start = function (name, callback) {
 		if (cmdtask.messages.post) {
 			console.log(cmdtask.messages.post);
 		}
-		if (cmdtask.callback) {
-			execComplete.resolve(cmdtask.callback());
+		if (callback) {
+			execComplete.resolve(callback());
 		} else {
 			execComplete.resolve();
 		}
