@@ -3,7 +3,6 @@ var gulp = require('gulp');
 var path = require('path');
 var Q = require('q');
 var SimpleCommand = require('simple-command');
-var util = require('util');
 
 module.exports = CommandTask;
 
@@ -13,35 +12,71 @@ module.exports = CommandTask;
 *
 * @param command the text of the command to run (including arguments and parameters, if any)
 * @param workDir the directory in which to run the command
-* @param logDir (optional) the directory in which to write the log file,
+* @param logDir (optional) the directory in which to write a log file contain the command's output,
 * if not provide, no log file is created
-* @param messages (optional) an object containing any of the following messages
-* @param messages.pre a message to output before executing the command
-* @param messages.post a message to output after the command completes (successfully)
-* @param messages.help a help message to associate with this command
-* (can be used as the the gulp-showhelp help text)
 */
-function CommandTask(command, workDir, logDir, messages) {
+function CommandTask(command, workDir, logDir) {
 	// set the required arguments directly
 	this.command = command;
 	this.workDir = workDir;
 
-	// handle the various cases for optional parameters
-	if (typeof logDir === 'object') {
-		messages = logDir;
-		logDir = null;
-	}
-	this.logDir = logDir;
-	this.messages = messages ? messages :  {
-		pre: undefined,
-		post: undefined,
-		help: undefined
-	};
-
 	// set the derived properties
 	this.args = this.command.split(' ');
 	this.exec = this.args.shift();
+
+	// the default outputs
+	this.setLogDir(logDir);
+	this.tuneOutput();
 }
+
+/**
+* Sets the output directory for logging the command output.
+*
+* @param logDir (optional) the directory in which to write a log file contain the command's output,
+* if not provide, no log file is created
+*/
+CommandTask.prototype.setLogDir = function (logDir) {
+	this.logDir = logDir;
+};
+
+/**
+* Controls what output is generated, and where it goes, when the task is stared.
+* The default is for command output to be masked with on '#' for each 'chunk' of output.
+*
+* @param (optional) mask sets what to do with the output from the command,
+* it may have the following values:
+* - 'default' (or 1): outputs one '#' to show progress for each 'chunk' of output from the command
+* - 'none' (or 0): shows the full output of the command
+* - 'full' (or -1): no output from the command, or any indication of its progress is shown
+* - any number, N > 1: like 'default', but counts N 'chunks' before outputing a '#'
+* @param messages (optional) an object containing any of the following messages
+* @param messages.pre a message to output before executing the command
+* @param messages.post a message to output after the command completes (successfully)
+*/
+CommandTask.prototype.tuneOutput = function (mask, messages) {
+	if (typeof mask === 'object') {
+		messages = mask;
+		mask = undefined;
+	}
+	// set the mask as a number
+	if (typeof mask === 'number') {
+		this.outputMask = mask;
+	} else {
+		if (mask === 'none') {
+			this.outputMask = 0;
+		} else if (mask === 'full') {
+			this.outputMask = -1;
+		} else {
+			// use the default
+			this.outputMask = 1;
+		}
+	}
+	// set the messages (as an object of undefined values, if needed)
+	this.messages = messages ? messages :  {
+		pre: undefined,
+		post: undefined
+	};
+};
 
 /**
 * Run the task on the CLI.
@@ -56,32 +91,24 @@ function CommandTask(command, workDir, logDir, messages) {
 * (it will be fulfilled with an error if the command fails)
 */
 CommandTask.prototype.start = function (name, callback) {
-	var cmdtask = this;
 	if (typeof name === 'function' || !name) {
 		callback = name;
-		name = cmdtask.command.replace(/\W/g, '-');
+		name = this.command.replace(/\W/g, '-');
 	}
-	var logfile = cmdtask.logDir ? cmdtask.logDir + '/' + name + '.log' : undefined;
-	if (logfile) {
-		startLogfile(logfile,
-			'TODO: cd ' + path.resolve(cmdtask.workDir) + ' && ' + cmdtask.command + '\n\n');
+	var logfile = getLogfile(this, name);
+	var command = new SimpleCommand(this.exec, this.args, path.resolve(this.workDir));
+	if (this.messages.pre) {
+		console.log(this.messages.pre);
 	}
-	var command = new SimpleCommand(cmdtask.exec, cmdtask.args, path.resolve(cmdtask.workDir));
-	command.setOptions({
-		redirect: logfile ? path.resolve(logfile) : undefined,
-		progress: 25
-	});
-	if (cmdtask.messages.pre) {
-		console.log(cmdtask.messages.pre);
-	}
+	var cmdtask = this;
 	var execComplete = Q.defer();
-	command.run(function(returnCode) {
+	command.run(getCommandOptions(cmdtask.outputMask, logfile), function(returnCode) {
 		if (returnCode !== 0) {
 			console.log('An error (errno %d) occurred running `%s`.', returnCode, cmdtask.command);
 			if (logfile) {
 				console.log('Check the log file, %s, for more info.', logfile);
 			}
-			execComplete.reject(new Error(cmdtask.name + ' failed. Error code: ' + returnCode));
+			execComplete.reject(new Error(name + ' failed. Error code: ' + returnCode));
 			return;
 		}
 		if (cmdtask.messages.post) {
@@ -98,8 +125,7 @@ CommandTask.prototype.start = function (name, callback) {
 };
 
 /**
-* Creates a gulp task with a name matching name and a help message matching this.messages.help,
-* assuming either exist, that runs the CommandTask when called.
+* Creates a gulp task with a name matching name that runs the CommandTask when called.
 *
 * @param name the name of the gulp task
 * @param deps (optional) an array of dependency tasks that should be run before this tasks
@@ -108,6 +134,7 @@ CommandTask.prototype.start = function (name, callback) {
 * @return the created gulp task, just incase there's something you want to do with it
 */
 CommandTask.prototype.registerGulpTask = function (name, deps, callback) {
+	this.name = name;
 	if (typeof deps === 'function' || !deps) {
 		callback = deps;
 		deps = [];
@@ -116,18 +143,44 @@ CommandTask.prototype.registerGulpTask = function (name, deps, callback) {
 	var gulptask = gulp.task(name, deps, function () {
 		return cmdtask.start(name, callback);
 	});
-	if (cmdtask.messages.help) {
-		gulptask.help = util.format('\n%s\n', cmdtask.messages.help);
-	}
 	return gulptask;
 };
 
+function getLogfile(cmdtask, taskName) {
+	var logfile = cmdtask.logDir ? cmdtask.logDir + '/' + taskName + '.log' : null;
+	if (logfile) {
+		startLogfile(logfile,
+			'TODO: cd ' + path.resolve(cmdtask.workDir) + ' && ' + cmdtask.command + '\n\n');
+	}
+	return logfile;
+}
 
-function startLogfile(logfile, text) {
+function startLogfile(logfile, placeholderText) {
 	try {
 		fs.renameSync(logfile, logfile + '.bak');
 	} catch (err) {
 		// silent: logfile didn't exist anyway
 	}
-	fs.writeFileSync(logfile, text);
+	fs.writeFileSync(logfile, placeholderText);
+}
+
+function getCommandOptions(outputMask, logfile) {
+	// most common mapping
+	var cmdopts = {
+		redirect: logfile,
+		progress: outputMask > 0 ? outputMask : false,
+		record: null
+	};
+	// when there's no output mask we've got a special case
+	if (outputMask === 0) {
+		if (logfile) {
+			// set the record so output goes to file and to the console
+			cmdopts.redirect = null;
+			cmdopts.record = logfile;
+		} else {
+			// require progress
+			cmdopts.progress = true;
+		}
+	}
+	return cmdopts;
 }

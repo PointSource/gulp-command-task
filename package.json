@@ -31,5 +31,9 @@
     "gulp": "^3.8.10",
     "q": "^1.1.2",
     "simple-command": "^0.1.0"
+  },
+  "devDependencies": {
+    "gulp-showhelp": "^1.0.2",
+    "run-sequence": "^1.0.2"
   }
 }
