@@ -27,8 +27,9 @@ listPkg.tuneOutput({
 });
 
 gulp.task('default', ['help'], function (cb) {
-	runSeq([
-		listPkg.name
-	]);
+	runSeq(
+		listPkg.name,
+		cb
+	);
 })
 .help = 'Runs all tests, including showing help.';
