@@ -148,10 +148,10 @@ CommandTask.prototype.registerGulpTask = function (name, deps, callback) {
 		deps = [];
 	}
 	var cmdtask = this;
-	var gulptask = gulp.task(name, deps, function () {
+	gulp.task(name, deps, function () {
 		return cmdtask.start(name, callback);
 	});
-	return gulptask;
+	return gulp.tasks[name];
 };
 
 function getLogfile(cmdtask, taskName) {
