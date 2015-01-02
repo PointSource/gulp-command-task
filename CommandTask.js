@@ -6,15 +6,17 @@ var SimpleCommand = require('simple-command');
 
 module.exports = CommandTask;
 
-
 /**
-* Creates a command line task that can be run from your Node script and provides pretty output.
-*
-* @param command the text of the command to run (including arguments and parameters, if any)
-* @param workDir the directory in which to run the command
-* @param logDir (optional) the directory in which to write a log file contain the command's output,
-* if not provide, no log file is created
-*/
+ * **CommandTask** -
+ * creates a command line task that can be run from your Node script and provides pretty output
+ *
+ * @param  {string} **command** the text of the command to run
+ * (including arguments and parameters, if any)
+ * @param  {string} **workDir** the directory in which to run the command
+ * @param  {string} **logDir** (optional) the directory in which to write a log file contain the
+ * command's output, if not provide, no log file is created
+ *
+ */
 function CommandTask(command, workDir, logDir) {
 	// set the required arguments directly
 	this.command = command;
@@ -30,29 +32,33 @@ function CommandTask(command, workDir, logDir) {
 }
 
 /**
-* Sets the output directory for logging the command output.
-*
-* @param logDir (optional) the directory in which to write a log file contain the command's output,
-* if not provide, no log file is created
-*/
+ * **CommandTask.setLogDir** - sets the output directory for logging the command output
+ *
+ * @param  {string} **logDir** (optional) the directory in which to write a log file contain the
+ * command's output, if not provide, no log file is created
+ *
+ */
 CommandTask.prototype.setLogDir = function (logDir) {
 	this.logDir = logDir;
 };
 
 /**
-* Controls what output is generated, and where it goes, when the task is stared.
-* The default is for command output to be masked with on '#' for each 'chunk' of output.
-*
-* @param (optional) mask sets what to do with the output from the command,
-* it may have the following values:
-* - 'default' (or 1): outputs one '#' to show progress for each 'chunk' of output from the command
-* - 'none' (or 0): shows the full output of the command
-* - 'full' (or -1): no output from the command, or any indication of its progress is shown
-* - any number, N > 1: like 'default', but counts N 'chunks' before outputing a '#'
-* @param messages (optional) an object containing any of the following messages
-* @param messages.pre a message to output before executing the command
-* @param messages.post a message to output after the command completes (successfully)
-*/
+ * **CommandTask.tuneOutput** -
+ * controls what output is generated, and where it goes, when the task is started<br/>
+ * The default is for command output to be masked with on '#' for each 'chunk' of output.
+ *
+ * @param  **mask** (optional) sets what to do with the output from the command,
+ * it may have the following values:
+ * 	- `'default'` (or `1`): outputs one '#' to show progress for each 'chunk' of output from the command
+ * 	- `'none'` (or `0`): shows the full output of the command
+ * 	- `'full'` (or `-1`): no output from the command, or any indication of its progress is shown
+ * 	- any number, `N > 1`: like 'default', but counts `N` 'chunks' before outputing a '#'
+ *
+ * @param  {object} **messages** (optional) an object containing any of the following messages
+ * @param  {string} **messages.pre** a message to output before executing the command
+ * @param  {string} **messages.post** a message to output after the command completes (successfully)
+ *
+ */
 CommandTask.prototype.tuneOutput = function (mask, messages) {
 	if (typeof mask === 'object') {
 		messages = mask;
@@ -79,17 +85,17 @@ CommandTask.prototype.tuneOutput = function (mask, messages) {
 };
 
 /**
-* Run the task on the CLI.
-*
-* @param name (optional) the name of the task, if a _logDir_ is provide, command output will be
-* saved in _$logDir/$name.log_; if _logDir_ is provided but _name_ is not, command output will be
-* saved in _$logDir/$command.log_
-* @param callback (optional) a function to call to fulfill the exec promise when the task completes
-* (successfully)
-*
-* @return a promise that will be fulfilled when the command completes
-* (it will be fulfilled with an error if the command fails)
-*/
+ * **CommandTask.start** - starts the task
+ *
+ * @param  {string} **name** (optional) the name of the task, if a _logDir_ is provide,
+ * command output will be saved in _$logDir/$name.log_;
+ * if _logDir_ is provided but _name_ is not, command output will be saved in _$logDir/$command.log_
+ * @param  {function} **callback** (optional) a function to call to fulfill the exec promise when
+ * the task completes (successfully)
+ *
+ * @return {q.Promise} a promise that will be fulfilled when the command completes
+ * (it will be fulfilled with an error if the command fails)
+ */
 CommandTask.prototype.start = function (name, callback) {
 	if (typeof name === 'function' || !name) {
 		callback = name;
@@ -125,14 +131,16 @@ CommandTask.prototype.start = function (name, callback) {
 };
 
 /**
-* Creates a gulp task with a name matching name that runs the CommandTask when called.
-*
-* @param name the name of the gulp task
-* @param deps (optional) an array of dependency tasks that should be run before this tasks
-* @param callback (optional) a function to be called after the task completes
-*
-* @return the created gulp task, just incase there's something you want to do with it
-*/
+ * **CommandTask.registerGulpTask** - creates a gulp task with a name matching name that runs the
+ * CommandTask when called
+ *
+ * @param  {string} **name** the name of the gulp task to be created
+ * @param  {array} **deps**  (optional) an array of dependency task names that should be run before
+ * this tasks
+ * @param  {function} **callback** (optional) a function to be called after the task completes
+ *
+ * @return {gulp.Task} the created gulp task, just in case there's something you want to do with it
+ */
 CommandTask.prototype.registerGulpTask = function (name, deps, callback) {
 	this.name = name;
 	if (typeof deps === 'function' || !deps) {
